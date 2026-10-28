@@ -1,0 +1,21 @@
+# 构建产物
+build/
+*.o
+*.d
+*.elf
+*.map
+*.siz
+
+# 编辑器
+.vscode/
+.idea/
+*.uvprojx
+*.uvoptx
+
+# 系统
+.DS_Store
+Thumbs.db
+
+# 临时
+*.log
+*.tmp
