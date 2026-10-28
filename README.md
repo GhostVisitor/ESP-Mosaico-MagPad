@@ -110,12 +110,15 @@ CH592 复位后 `CFG_DEBUG_EN` 默认为 1，此时 **PB14/PB15 只能作为 TIO
 
 ## 4. 编译
 
-需要 **MounRiver Studio 3**（内置 `riscv-none-embed-gcc 8.2.0` 和 `make`）。
+需要 **MounRiver Studio**（**2 或 3 均可**，内置 `riscv-none-embed-gcc 8.2.0` 和 `make`）。
+`build.ps1` 会先找 `-MrsRoot` 指定的目录，没找到就自动探测
+`C:\MounRiver\MounRiver_Studio2` / `...Studio3` 等常见安装位置。
 
 ```powershell
 pwsh -File scripts/build.ps1            # 正常固件
 pwsh -File scripts/build.ps1 -Diag      # USB CDC 诊断固件
 pwsh -File scripts/build.ps1 -Clean     # 先清理
+pwsh -File scripts/build.ps1 -MrsRoot "C:\MounRiver\MounRiver_Studio2"   # 手动指定安装目录
 ```
 
 或直接：

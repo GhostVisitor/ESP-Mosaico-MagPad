@@ -1,6 +1,10 @@
 <#
 .SYNOPSIS
-    构建 ESP-Mosaico 磁吸手柄（CH592F）固件（使用 MounRiver Studio 3 自带工具链）。
+    构建 ESP-Mosaico 磁吸手柄（CH592F）固件（使用 MounRiver Studio 自带工具链）。
+
+.PARAMETER MrsRoot
+    MounRiver Studio 安装目录（如 C:\MounRiver\MounRiver_Studio2）。
+    默认会自动探测 C:\MounRiver\MounRiver_Studio2 / ...Studio3 等常见位置。
 
 .DESCRIPTION
     1. 自动查找 make 与 riscv-none-embed-gcc（PATH 或 MRS 3 安装目录）；
@@ -42,17 +46,47 @@ function Find-Tool([string]$ExeName, [string]$SearchRoot) {
     return $null
 }
 
-$mrsBase = Join-Path $MrsRoot 'resources\app\resources\win32'
-$gcc = Find-Tool 'riscv-none-embed-gcc.exe' (Join-Path $mrsBase 'components\WCH\Toolchain')
-$make = Find-Tool 'make.exe' (Join-Path $mrsBase 'others\Build_Tools\Make')
+function Resolve-Toolchain([string]$Root) {
+    if (-not $Root) { return $null }
+    $base = Join-Path $Root 'resources\app\resources\win32'
+    if (-not (Test-Path $base)) { return $null }
+    $g = Find-Tool 'riscv-none-embed-gcc.exe' (Join-Path $base 'components\WCH\Toolchain')
+    $m = Find-Tool 'make.exe' (Join-Path $base 'others\Build_Tools\Make')
+    if ($g -and $m) { return [pscustomobject]@{ Gcc = $g; Make = $m } }
+    return $null
+}
 
-if (-not $gcc -or -not $make) {
+# 1) 先用 -MrsRoot 指定的（或默认路径）
+$tc = Resolve-Toolchain $MrsRoot
+
+# 2) 没找到就自动探测常见安装位置（MRS 2 / 3 均可）
+if (-not $tc) {
+    $probe = @()
+    foreach ($base in @('C:\MounRiver', 'D:\MounRiver', $env:ProgramFiles, ${env:ProgramFiles(x86)})) {
+        if ($base -and (Test-Path $base)) {
+            $probe += Get-ChildItem $base -Directory -ErrorAction SilentlyContinue |
+                Where-Object { $_.Name -like 'MounRiver*' } | ForEach-Object { $_.FullName }
+        }
+    }
+    foreach ($c in $probe) {
+        $tc = Resolve-Toolchain $c
+        if ($tc) {
+            Write-Host "自动检测到工具链：$c" -ForegroundColor DarkGray
+            break
+        }
+    }
+}
+
+if (-not $tc) {
     Write-Host "未检测到 riscv-none-embed-gcc / make。" -ForegroundColor Yellow
     Write-Host "  方式 A：用 MounRiver Studio 打开本目录后 Build（Ctrl+B）" -ForegroundColor Cyan
-    Write-Host "  方式 B：用参数指定 MRS 安装路径： -MrsRoot D:\MounRiver\MounRiver_Studio3" -ForegroundColor Cyan
+    Write-Host "  方式 B：用参数指定 MRS 安装路径： -MrsRoot C:\MounRiver\MounRiver_Studio2" -ForegroundColor Cyan
     if ($Require) { exit 1 }
     exit 0
 }
+
+$gcc = $tc.Gcc
+$make = $tc.Make
 
 $toolchainPrefix = Join-Path (Split-Path $gcc -Parent) 'riscv-none-embed-'
 Write-Host "工具链: $gcc" -ForegroundColor DarkGray
